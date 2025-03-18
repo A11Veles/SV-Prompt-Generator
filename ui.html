@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Chat Interface</title>
+    <style>
+        :root {
+            --primary: #50fa7b;
+            --secondary: #bd93f9;
+            --background: #282a36;
+            --surface: #44475a;
+            --text: #f8f8f2;
+            --success: #50fa7b;
+            --error: #ff5555;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        
+        header {
+            background-color: var(--surface);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-block;
+            animation: pulse 4s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .header-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        main {
+            flex: 1;
+            max-width: 800px;
+            width: 90%;
+            margin: 2rem auto;
+            animation: fadeIn 1s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .chat-container {
+            background-color: var(--surface);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            transform-origin: center;
+            animation: scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            flex-direction: column;
+            height: 60vh;
+        }
+        
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        h2 {
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            position: relative;
+            display: inline-block;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transform-origin: left;
+            animation: lineGrow 0.6s 0.3s forwards;
+            transform: scaleX(0);
+        }
+        
+        @keyframes lineGrow {
+            to { transform: scaleX(1); }
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            padding-right: 0.5rem;
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            background-color: rgba(189, 147, 249, 0.2);
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 2px;
+        }
+        
+        .bot-message {
+            background-color: rgba(80, 250, 123, 0.1);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        
+        .input-area {
+            display: flex;
+            gap: 0.8rem;
+        }
+        
+        textarea {
+            flex: 1;
+            min-height: 50px;
+            max-height: 150px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background-color: rgba(0, 0, 0, 0.2);
+            color: var(--text);
+            padding: 1rem;
+            font-size: 1rem;
+            resize: vertical;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(80, 250, 123, 0.3);
+        }
+        
+        button {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border: none;
+            color: var(--background);
+            padding: 0.8rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(80, 250, 123, 0.3);
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        button:hover::before {
+            left: 100%;
+        }
+        
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 6px rgba(80, 250, 123, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        .loader {
+            display: none;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+        
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            margin: 0 5px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        
+        .error-message {
+            background-color: rgba(255, 85, 85, 0.2);
+            border-left: 4px solid var(--error);
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.9rem;
+            color: rgba(248, 248, 242, 0.6);
+            background-color: var(--surface);
+            margin-top: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2rem;
+            }
+            
+            main {
+                width: 95%;
+            }
+            
+            .chat-container {
+                padding: 1.5rem;
+                height: 70vh;
+            }
+        }
+        
+        .particle {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-particles" id="particles"></div>
+        <div class="header-content">
+            <div class="logo">Veles Chat</div>
+            <p>Generate Prompts for your AI Agents!!</p>
+        </div>
+    </header>
+    
+    <main>
+        <section class="chat-container">
+            <h2>Chat with me</h2>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">
+                    Hello! What prompts do you need today?
+                </div>
+            </div>
+            
+            <div class="loader" id="loader">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            
+            <div class="input-area">
+                <textarea id="userInput" placeholder="Type your message here... (Shift + Enter for new line)"></textarea>
+                <button id="sendBtn">Send</button>
+            </div>
+            <div class="error-message" id="errorMessage"></div>
+        </section>
+    </main>
+    
+    <footer>
+        <p>&copy; 2025 Veles</p>
+    </footer>
+    
+    <script>
+        const N8N_WEBHOOK_URL = "https://veles-agents-u35709.vm.elestio.app/webhook/start";
+        
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('errorMessage');
+        const particles = document.getElementById('particles');
+        
+        const sessionId = generateSessionId();
+        
+        function createParticles() {
+            particles.innerHTML = '';
+            const particleCount = 40;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                const size = Math.random() * 5 + 2;
+                const duration = Math.random() * 10 + 5;
+                const delay = Math.random() * 5;
+                
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.opacity = Math.random() * 0.5 + 0.1;
+                
+                const animation = `floatParticle ${duration}s linear ${delay}s infinite`;
+                particle.style.animation = animation;
+                
+                particles.appendChild(particle);
+            }
+        }
+        
+        function createParticleKeyframes() {
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @keyframes floatParticle {
+                    0% {
+                        transform: translate(0, 0) rotate(0deg);
+                        opacity: 0;
+                    }
+                    10% {
+                        opacity: 0.5;
+                    }
+                    90% {
+                        opacity: 0.3;
+                    }
+                    100% {
+                        transform: translate(${Math.random() > 0.5 ? '' : '-'}${Math.random() * 100 + 50}px, 
+                                           ${Math.random() > 0.5 ? '' : '-'}${Math.random() * 100 + 50}px) 
+                                           rotate(${Math.random() * 360}deg);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        function generateSessionId() {
+            return 'session_' + Math.random().toString(36).substring(2, 15) + 
+                   Math.random().toString(36).substring(2, 15);
+        }
+        
+        function addMessage(text, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+            
+            if (!isUser && typeof text === 'string' && text.includes('\n')) {
+                messageDiv.innerHTML = text.replace(/\n/g, '<br>')
+                                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                          .replace(/\*(.*?)\*/g, '<em>$1</em>');
+            } else {
+                messageDiv.textContent = text;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            messageDiv.style.opacity = '0';
+            messageDiv.style.transform = 'translateY(10px)';
+            
+            setTimeout(() => {
+                messageDiv.style.opacity = '1';
+                messageDiv.style.transform = 'translateY(0)';
+            }, 10);
+        }
+        
+        function formatPromptToHumanReadable(jsonString) {
+            const data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+            
+            const name = data.name;
+            const category = data.category;
+            let promptText = data.Prompt;
+            
+            promptText = promptText.replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+            
+            const formattedText = `# ${name}\n\nCategory: ${category}\n\n${promptText}`;
+            
+            return formattedText;
+        }
+        
+        function extractResponseContent(data) {
+            if (data && data.name && data.category && data.Prompt) {
+                return formatPromptToHumanReadable(data);
+            }
+            
+            if (Array.isArray(data) && data.length > 0) {
+                if (data[0] && data[0].name && data[0].category && data[0].Prompt) {
+                    return formatPromptToHumanReadable(data[0]);
+                }
+                
+                if (data[0].Prompt) {
+                    return data[0].Prompt;
+                }
+                return data[0];
+            }
+            
+            if (data.output) {
+                try {
+                    const parsed = JSON.parse(data.output);
+                    if (parsed && parsed.name && parsed.category && parsed.Prompt) {
+                        return formatPromptToHumanReadable(parsed);
+                    }
+                    return data.output;
+                } catch (e) {
+                    return data.output;
+                }
+            }
+            
+            if (typeof data === 'string') {
+                try {
+                    const parsedData = JSON.parse(data);
+                    if (parsedData.name && parsedData.category && parsedData.Prompt) {
+                        return formatPromptToHumanReadable(parsedData);
+                    }
+                    return data;
+                } catch (e) {
+                    return data;
+                }
+            }
+            
+            return JSON.stringify(data, null, 2);
+        }
+        
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            
+            if (!message) {
+                return;
+            }
+            
+            if (N8N_WEBHOOK_URL === "https://your-n8n-instance.com/webhook/llm-chat") {
+                console.log("Please configure your N8N_WEBHOOK_URL in the script");
+                return;
+            }
+            
+            try {
+                addMessage(message, true);
+                
+                userInput.value = '';
+                
+                sendBtn.disabled = true;
+                loader.style.display = 'flex';
+                hideError();
+                
+                const options = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId: sessionId,
+                        chatInput: message
+                    })
+                };
+                
+                const response = await fetch(N8N_WEBHOOK_URL, options);
+                
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.statusText || 'Failed to connect to LLM service'}`);
+                }
+                
+                const data = await response.json();
+                
+                const responseContent = extractResponseContent(data);
+                
+                if (responseContent) {
+                    addMessage(responseContent);
+                } else {
+                    throw new Error("Invalid response format from LLM service");
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || "Failed to get response. Please try again.");
+            } finally {
+                loader.style.display = 'none';
+                sendBtn.disabled = false;
+                userInput.focus();
+            }
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            errorMessage.style.animation = 'none';
+            void errorMessage.offsetWidth;
+            errorMessage.style.animation = 'fadeIn 0.3s ease';
+        }
+        
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+        
+        function addButtonAnimation() {
+            sendBtn.addEventListener('mouseenter', () => {
+                sendBtn.style.transform = 'translateY(-2px)';
+            });
+            sendBtn.addEventListener('mouseleave', () => {
+                sendBtn.style.transform = 'translateY(0)';
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticleKeyframes();
+            createParticles();
+            addButtonAnimation();
+            
+            sendBtn.addEventListener('click', sendMessage);
+            
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            if (N8N_WEBHOOK_URL === "https://your-n8n-instance.com/webhook/llm-chat") {
+                console.log("Please configure your N8N_WEBHOOK_URL in the script");
+            }
+            
+            userInput.focus();
+        });
+    </script>
+    
+</body>
+</html>
