@@ -203,8 +203,8 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.6s;
         }
         
         button:hover::before {
@@ -213,76 +213,102 @@
         
         button:active {
             transform: translateY(2px);
-            box-shadow: 0 2px 6px rgba(80, 250, 123, 0.3);
+            box-shadow: 0 2px 6px rgba(80, 250, 123, 0.2);
         }
         
-        button:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-        
-        .loader {
+        .loading {
             display: none;
-            justify-content: center;
-            margin: 1rem 0;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        
+        .loading-dots {
+            display: inline-flex;
         }
         
         .dot {
             width: 8px;
             height: 8px;
-            background-color: var(--primary);
+            margin: 0 4px;
             border-radius: 50%;
-            margin: 0 5px;
-            animation: bounce 1.4s infinite ease-in-out both;
+            background-color: var(--text);
+            animation: dot-pulse 1.5s infinite ease-in-out;
         }
         
-        .dot:nth-child(1) { animation-delay: -0.32s; }
-        .dot:nth-child(2) { animation-delay: -0.16s; }
+        .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
         
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+        .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes dot-pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
         }
         
         .error-message {
-            background-color: rgba(255, 85, 85, 0.2);
-            border-left: 4px solid var(--error);
-            padding: 1rem;
-            margin-top: 1rem;
-            border-radius: 4px;
             display: none;
+            color: var(--error);
+            margin-top: 1rem;
+            padding: 0.8rem;
+            border-radius: 8px;
+            background-color: rgba(255, 85, 85, 0.1);
+            border-left: 3px solid var(--error);
+            animation: fadeIn 0.3s ease;
         }
         
-        footer {
-            text-align: center;
-            padding: 1.5rem;
-            font-size: 0.9rem;
-            color: rgba(248, 248, 242, 0.6);
-            background-color: var(--surface);
-            margin-top: 2rem;
+        /* Scrollbar styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
         }
         
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(189, 147, 249, 0.3);
+            border-radius: 10px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(189, 147, 249, 0.5);
+        }
+        
+        /* Responsive adjustments */
         @media (max-width: 768px) {
-            .logo {
-                font-size: 2rem;
-            }
-            
             main {
                 width: 95%;
             }
             
             .chat-container {
                 padding: 1.5rem;
-                height: 70vh;
+            }
+            
+            button {
+                padding: 0.8rem 1.5rem;
             }
         }
         
-        .particle {
-            position: absolute;
-            background-color: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 0;
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 2rem;
+            }
+            
+            .chat-container {
+                padding: 1rem;
+            }
+            
+            .input-area {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -290,95 +316,84 @@
     <header>
         <div class="header-particles" id="particles"></div>
         <div class="header-content">
-            <div class="logo">Veles Chat</div>
-            <p>Generate Prompts for your AI Agents!!</p>
+            <div class="logo">SV Prompt Generator</div>
+            <p>Create optimized prompts for Stable Video models</p>
         </div>
     </header>
     
     <main>
-        <section class="chat-container">
-            <h2>Chat with me</h2>
+        <div class="chat-container">
+            <h2>Chat Assistant</h2>
             <div class="chat-messages" id="chatMessages">
-                <div class="message bot-message">
-                    Hello! What prompts do you need today?
+                <!-- Messages will be added here dynamically -->
+            </div>
+            <div class="input-area">
+                <textarea id="userInput" placeholder="Describe what kind of video you want to generate..."></textarea>
+                <button id="sendBtn">Generate</button>
+            </div>
+            <div class="loading" id="loading">
+                <span>Generating prompt</span>
+                <div class="loading-dots">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
                 </div>
             </div>
-            
-            <div class="loader" id="loader">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
-            
-            <div class="input-area">
-                <textarea id="userInput" placeholder="Type your message here... (Shift + Enter for new line)"></textarea>
-                <button id="sendBtn">Send</button>
-            </div>
             <div class="error-message" id="errorMessage"></div>
-        </section>
+        </div>
     </main>
     
-    <footer>
-        <p>&copy; 2025 Veles</p>
-    </footer>
-    
     <script>
-        const N8N_WEBHOOK_URL = "https://veles-agents-u35709.vm.elestio.app/webhook/start";
+        // Configuration
+        const N8N_WEBHOOK_URL = "https://your-n8n-instance.com/webhook/llm-chat";
         
+        // DOM Elements
+        const chatMessages = document.getElementById('chatMessages');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
-        const chatMessages = document.getElementById('chatMessages');
-        const loader = document.getElementById('loader');
+        const loading = document.getElementById('loading');
         const errorMessage = document.getElementById('errorMessage');
-        const particles = document.getElementById('particles');
         
+        // Session ID for conversation tracking
         const sessionId = generateSessionId();
         
         function createParticles() {
-            particles.innerHTML = '';
-            const particleCount = 40;
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 30;
             
             for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('div');
                 particle.classList.add('particle');
-                
-                const size = Math.random() * 5 + 2;
-                const duration = Math.random() * 10 + 5;
-                const delay = Math.random() * 5;
-                
-                particle.style.width = `${size}px`;
-                particle.style.height = `${size}px`;
+                particle.style.width = `${Math.random() * 4 + 1}px`;
+                particle.style.height = particle.style.width;
+                particle.style.opacity = Math.random() * 0.5 + 0.2;
                 particle.style.left = `${Math.random() * 100}%`;
                 particle.style.top = `${Math.random() * 100}%`;
-                particle.style.opacity = Math.random() * 0.5 + 0.1;
                 
-                const animation = `floatParticle ${duration}s linear ${delay}s infinite`;
-                particle.style.animation = animation;
+                const animationDuration = Math.random() * 20 + 10;
+                const animationDelay = Math.random() * 5;
                 
-                particles.appendChild(particle);
+                particle.style.animation = `float ${animationDuration}s ${animationDelay}s infinite ease-in-out`;
+                
+                particlesContainer.appendChild(particle);
             }
         }
         
         function createParticleKeyframes() {
             const style = document.createElement('style');
-            style.innerHTML = `
-                @keyframes floatParticle {
-                    0% {
-                        transform: translate(0, 0) rotate(0deg);
-                        opacity: 0;
-                    }
-                    10% {
-                        opacity: 0.5;
-                    }
-                    90% {
-                        opacity: 0.3;
-                    }
-                    100% {
-                        transform: translate(${Math.random() > 0.5 ? '' : '-'}${Math.random() * 100 + 50}px, 
-                                           ${Math.random() > 0.5 ? '' : '-'}${Math.random() * 100 + 50}px) 
-                                           rotate(${Math.random() * 360}deg);
-                        opacity: 0;
-                    }
+            style.textContent = `
+                .particle {
+                    position: absolute;
+                    background-color: rgba(255, 255, 255, 0.3);
+                    border-radius: 50%;
+                    pointer-events: none;
+                }
+                
+                @keyframes float {
+                    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+                    25% { transform: translate(${Math.random() * 30 - 15}px, ${Math.random() * 30 - 15}px) rotate(${Math.random() * 20}deg); }
+                    50% { transform: translate(${Math.random() * 30 - 15}px, ${Math.random() * 30 - 15}px) rotate(${Math.random() * 40}deg); }
+                    75% { transform: translate(${Math.random() * 30 - 15}px, ${Math.random() * 30 - 15}px) rotate(${Math.random() * 20}deg); }
                 }
             `;
             document.head.appendChild(style);
@@ -394,21 +409,25 @@
             messageDiv.classList.add('message');
             messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
             
-            if (!isUser && typeof text === 'string' && text.includes('\n')) {
-                messageDiv.innerHTML = text.replace(/\n/g, '<br>')
-                                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                          .replace(/\*(.*?)\*/g, '<em>$1</em>');
-            } else {
-                messageDiv.textContent = text;
+            // Process markdown-like formatting for bot messages
+            if (!isUser) {
+                // Bold text between **
+                text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                // Italic text between *
+                text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                // Code blocks
+                text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+                // Line breaks
+                text = text.replace(/\n/g, '<br>');
             }
             
+            messageDiv.innerHTML = text;
             chatMessages.appendChild(messageDiv);
-            
             chatMessages.scrollTop = chatMessages.scrollHeight;
             
+            // Add entrance animation
             messageDiv.style.opacity = '0';
             messageDiv.style.transform = 'translateY(10px)';
-            
             setTimeout(() => {
                 messageDiv.style.opacity = '1';
                 messageDiv.style.transform = 'translateY(0)';
@@ -416,115 +435,129 @@
         }
         
         function formatPromptToHumanReadable(jsonString) {
-            const data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
-            
-            const name = data.name;
-            const category = data.category;
-            let promptText = data.Prompt;
-            
-            promptText = promptText.replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
-            
-            const formattedText = `# ${name}\n\nCategory: ${category}\n\n${promptText}`;
-            
-            return formattedText;
+            try {
+                const data = JSON.parse(jsonString);
+                let formattedText = '';
+                
+                if (data.positive_prompt) {
+                    formattedText += `**Positive Prompt:**\n${data.positive_prompt}\n\n`;
+                }
+                
+                if (data.negative_prompt) {
+                    formattedText += `**Negative Prompt:**\n${data.negative_prompt}\n\n`;
+                }
+                
+                return formattedText.trim();
+            } catch (e) {
+                return jsonString;
+            }
         }
         
         function extractResponseContent(data) {
-            if (data && data.name && data.category && data.Prompt) {
-                return formatPromptToHumanReadable(data);
+            // First, check if the response is already in the expected format
+            if (data.positive_prompt || data.negative_prompt) {
+                return data;
             }
             
-            if (Array.isArray(data) && data.length > 0) {
-                if (data[0] && data[0].name && data[0].category && data[0].Prompt) {
-                    return formatPromptToHumanReadable(data[0]);
+            // If it's a string that looks like JSON, try to parse it
+            if (typeof data === 'string' && (data.trim().startsWith('{') || data.trim().startsWith('['))) {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.positive_prompt || parsed.negative_prompt) {
+                        return parsed;
+                    }
+                } catch (e) {
+                    // If parsing fails, continue with other extraction methods
+                }
+            }
+            
+            // If it's an object with a 'content' field (typical of some API responses)
+            if (data.content) {
+                // Check if content is a string that looks like JSON
+                if (typeof data.content === 'string' && 
+                   (data.content.trim().startsWith('{') || data.content.trim().startsWith('['))) {
+                    try {
+                        const parsed = JSON.parse(data.content);
+                        if (parsed.positive_prompt || parsed.negative_prompt) {
+                            return parsed;
+                        }
+                    } catch (e) {
+                        // If parsing fails, return the content as is
+                        return { 
+                            positive_prompt: data.content,
+                            negative_prompt: ""
+                        };
+                    }
                 }
                 
-                if (data[0].Prompt) {
-                    return data[0].Prompt;
-                }
-                return data[0];
+                // If content is not JSON, return it directly
+                return { 
+                    positive_prompt: data.content,
+                    negative_prompt: ""
+                };
             }
             
-            if (data.output) {
-                try {
-                    const parsed = JSON.parse(data.output);
-                    if (parsed && parsed.name && parsed.category && parsed.Prompt) {
-                        return formatPromptToHumanReadable(parsed);
-                    }
-                    return data.output;
-                } catch (e) {
-                    return data.output;
-                }
-            }
-            
-            if (typeof data === 'string') {
-                try {
-                    const parsedData = JSON.parse(data);
-                    if (parsedData.name && parsedData.category && parsedData.Prompt) {
-                        return formatPromptToHumanReadable(parsedData);
-                    }
-                    return data;
-                } catch (e) {
-                    return data;
-                }
-            }
-            
-            return JSON.stringify(data, null, 2);
+            // If we can't extract in a structured way, return the whole response as positive prompt
+            return {
+                positive_prompt: JSON.stringify(data, null, 2),
+                negative_prompt: ""
+            };
         }
         
-        async function sendMessage() {
+        function sendMessage() {
             const message = userInput.value.trim();
+            if (!message) return;
             
-            if (!message) {
-                return;
-            }
+            // Add user message to chat
+            addMessage(message, true);
             
-            if (N8N_WEBHOOK_URL === "https://your-n8n-instance.com/webhook/llm-chat") {
-                console.log("Please configure your N8N_WEBHOOK_URL in the script");
-                return;
-            }
+            // Clear input
+            userInput.value = '';
             
-            try {
-                addMessage(message, true);
-                
-                userInput.value = '';
-                
-                sendBtn.disabled = true;
-                loader.style.display = 'flex';
-                hideError();
-                
-                const options = {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        sessionId: sessionId,
-                        chatInput: message
-                    })
-                };
-                
-                const response = await fetch(N8N_WEBHOOK_URL, options);
-                
+            // Show loading indicator
+            loading.style.display = 'block';
+            sendBtn.disabled = true;
+            
+            // Hide any previous errors
+            hideError();
+            
+            // Prepare request data
+            const requestData = {
+                message: message,
+                session_id: sessionId
+            };
+            
+            // Send request to n8n webhook
+            fetch(N8N_WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
                 if (!response.ok) {
-                    throw new Error(`Error: ${response.statusText || 'Failed to connect to LLM service'}`);
+                    throw new Error('Network response was not ok');
                 }
-                
-                const data = await response.json();
-                
+                return response.json();
+            })
+            .then(data => {
+                // Extract the response content
                 const responseContent = extractResponseContent(data);
                 
-                if (responseContent) {
-                    addMessage(responseContent);
-                } else {
-                    throw new Error("Invalid response format from LLM service");
-                }
+                // Format the response for display
+                const formattedResponse = formatPromptToHumanReadable(JSON.stringify(responseContent));
                 
-            } catch (error) {
+                // Add bot message to chat
+                addMessage(formattedResponse);
+            })
+            .catch(error => {
                 console.error('Error:', error);
-                showError(error.message || "Failed to get response. Please try again.");
-            } finally {
-                loader.style.display = 'none';
+                showError('Failed to get response. Please try again later.');
+            })
+            .finally(() => {
+                // Hide loading indicator
+                loading.style.display = 'none';
                 sendBtn.disabled = false;
                 userInput.focus();
             }
